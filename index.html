@@ -28,7 +28,7 @@ function spin(){if(busy)return;busy=true;const button=document.querySelector('#s
 function updateLocks(){held.forEach((v,i)=>{cards[i].classList.toggle('is-locked',v);locks[i].classList.toggle('active',v);locks[i].textContent=v?'🔒 LOCKED':'🔓 FREE';locks[i].setAttribute('aria-pressed',String(v));locks[i].setAttribute('aria-label',(v?'Unlock ':'Lock ')+['Abstract','Paradox','Motor','Schtick'][i]);});}
 locks.forEach((btn,i)=>btn.addEventListener('click',()=>{held[i]=!held[i];updateLocks();}));
 document.querySelector('#unlock').onclick=()=>{held.fill(false);updateLocks();};document.querySelector('#spin').onclick=spin;
-const concretiseInstruction = "Given these four ingredients, suggest two or three distinct, simple, observable magical phenomena. Describe each in one short sentence. No props unless essential, no methods, no presentations, no plots, no explanations. Leave the invention to me.";
+const concretiseInstruction = "Given these four ingredients, suggest three distinct, simple, potentially observable impossible relationships. Describe each in one short sentence. State the underlying phenomenon without specifying particular objects, props, methods, presentations, plots or sequences. Leave the actual magical manifestation for me to invent. Do not force all four ingredients into every suggestion.";
 function concretise(){
  if(busy)return;
  const p=paradoxes[state[1]],s=schticks[state[3]];
