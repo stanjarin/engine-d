@@ -21,18 +21,34 @@ const motor=["Production", "Vanish", "Transformation", "Transposition", "Penetra
 const pools=[abstract,paradoxes,motor,schticks];
 let state=[random(abstract),Math.floor(Math.random()*paradoxes.length),random(motor),Math.floor(Math.random()*schticks.length)];
 let held=[false,false,false,false],count=0,busy=false;
+const snapshotKey='engineD-wheels-v1'+(location.pathname.includes('/preview/')?'-preview':'');
+function saveSnapshot(){
+ try{localStorage.setItem(snapshotKey,JSON.stringify({state,held,count}));}catch{}
+}
+function restoreSnapshot(){
+ try{
+  const saved=JSON.parse(localStorage.getItem(snapshotKey));
+  if(!saved||!Array.isArray(saved.state)||saved.state.length!==4||!Array.isArray(saved.held)||saved.held.length!==4)return;
+  if(!pools.every((pool,i)=>i===1||i===3?Number.isInteger(saved.state[i])&&saved.state[i]>=0&&saved.state[i]<pool.length:pool.includes(saved.state[i])))return;
+  state=saved.state;
+  held=saved.held.map(Boolean);
+  count=Number.isSafeInteger(saved.count)&&saved.count>=0?saved.count:0;
+ }catch{}
+}
+restoreSnapshot();
 function random(p){return p[Math.floor(Math.random()*p.length)]}
 function renderOne(i,value){if(i===1||i===3){const v=pools[i][value];displays[i].replaceChildren();const t=document.createElement('div');t.textContent=v[0];const sub=document.createElement('div');sub.className='tagline';sub.textContent=v[1];displays[i].append(t,sub);}else displays[i].textContent=value;}
 function render(){state.forEach((v,i)=>renderOne(i,v));document.querySelector('#counter').textContent=count+' spins';}
-function spin(){if(busy)return;busy=true;const button=document.querySelector('#spin');button.disabled=true;const future=state.map((v,i)=>held[i]?v:(i===1||i===3?Math.floor(Math.random()*pools[i].length):random(pools[i])));let tick=0;const timer=setInterval(()=>{for(let i=0;i<4;i++){if(held[i])continue;if(tick<7+i*2)renderOne(i,(i===1||i===3)?Math.floor(Math.random()*pools[i].length):random(pools[i]));else renderOne(i,future[i]);}tick++;if(tick>=17){clearInterval(timer);state=future;count++;busy=false;button.disabled=false;render();}},60);}
+function spin(){if(busy)return;busy=true;const button=document.querySelector('#spin');button.disabled=true;const future=state.map((v,i)=>held[i]?v:(i===1||i===3?Math.floor(Math.random()*pools[i].length):random(pools[i])));let tick=0;const timer=setInterval(()=>{for(let i=0;i<4;i++){if(held[i])continue;if(tick<7+i*2)renderOne(i,(i===1||i===3)?Math.floor(Math.random()*pools[i].length):random(pools[i]));else renderOne(i,future[i]);}tick++;if(tick>=17){clearInterval(timer);state=future;count++;busy=false;button.disabled=false;render();saveSnapshot();}},60);}
 function updateLocks(){held.forEach((v,i)=>{cards[i].classList.toggle('is-locked',v);locks[i].classList.toggle('active',v);locks[i].textContent=v?'🔒 LOCKED':'🔓 FREE';locks[i].setAttribute('aria-pressed',String(v));locks[i].setAttribute('aria-label',(v?'Unlock ':'Lock ')+['Abstract','Paradox','Motor','Schtick'][i]);});}
-locks.forEach((btn,i)=>btn.addEventListener('click',()=>{held[i]=!held[i];updateLocks();}));
-document.querySelector('#unlock').onclick=()=>{held.fill(false);updateLocks();};document.querySelector('#spin').onclick=spin;
+locks.forEach((btn,i)=>btn.addEventListener('click',()=>{held[i]=!held[i];updateLocks();saveSnapshot();}));
+document.querySelector('#unlock').onclick=()=>{held.fill(false);updateLocks();saveSnapshot();};document.querySelector('#spin').onclick=spin;
 const concretiseInstruction = "Given these four ingredients, suggest three distinct, simple, potentially observable impossible relationships. Describe each in one short sentence. State the underlying phenomenon without specifying particular objects, props, methods, presentations, plots or sequences. Leave the actual magical manifestation for me to invent. Do not force all four ingredients into every suggestion.";
 function concretise(){
  if(busy)return;
  const p=paradoxes[state[1]],s=schticks[state[3]];
  const question=["ENGINE D — CONCRETISE","Abstract: "+state[0],"Paradox: "+p[0]+" — "+p[1],"Motor: "+state[2],"Schtick: "+s[0]+" — "+s[1],"",concretiseInstruction].join("\n");
+ saveSnapshot();
  window.location.assign("https://chatgpt.com/?prompt="+encodeURIComponent(question));
 }
 document.querySelector('#concretise').onclick=concretise;
@@ -42,6 +58,7 @@ function wireDetails(config){const dlg=document.getElementById(config.dialog),no
 wireDetails({dialog:'paradoxModal',notes:'notes',status:'noteStatus',index:1,data:paradoxes,prefix:'paradox',title:'modalName',short:'modalShort',full:'modalFull',more:'more',close:'closeModal',save:'saveNotes'});
 wireDetails({dialog:'schtickModal',notes:'schtickNotes',status:'schtickStatus',index:3,data:schticks,prefix:'schtick',title:'schtickName',short:'schtickShort',full:'schtickFull',more:'schtickMore',close:'closeSchtick',save:'saveSchtick'});
 render();updateLocks();
+window.addEventListener('pagehide',saveSnapshot);
 </script><script>
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
  window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));
